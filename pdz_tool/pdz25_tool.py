@@ -257,9 +257,13 @@ class PDZ25Tool(BasePDZTool):
         10: {
             "name": 'Average Details',
             "fields": [
-                ('num_assays', 'I'),  # Number of assays to be averaged (unsigned int, 4 bytes)
-                ('assay_number', 'I'),  # Assay number (unsigned int, 4 bytes)
-                # Repeat 'assay_number' based on 'num_assays'
+                ('num_assays', 'I'),
+                ('assays', {
+                    'repeat': 'num_assays',
+                    'fields': [
+                        ('assay_number', 'I'),
+                    ]
+                }),
             ]
         },
         11: {
@@ -274,14 +278,19 @@ class PDZ25Tool(BasePDZTool):
         137: {
             "name": 'Image Details',
             "fields": [
-                ('num_images', 'i'),  # int (4 bytes) - number of images
-                ('image_length', 'I'),  # unsigned int (4 bytes) - length of the first image data
-                ('image', 'bytes'),  # image_length bytes - Image in JPEG format
-                ('image_x_dimension', 'I'),  # unsigned int (4 bytes) - Width
-                ('image_y_dimension', 'I'),  # unsigned int (4 bytes) - Height
-                ('image_annotation_length', 'I'),  # unsigned int (4 bytes) - Length of the annotation
-                ('image_annotation', 'wchar_t'),  # wchar_t[annotation_length] - Annotation text
-                # Will repeat the above fields for `num_images`
+                ('num_images', 'i'),
+                ('images', {
+                    'repeat': 'num_images',
+                    'fields': [
+                        ('image_length', 'I'),  # unsigned int (4 bytes) - length of the first image data
+                        ('image', 'bytes'),  # image_length bytes - Image in JPEG format
+                        ('x_dimension', 'I'),  # unsigned int (4 bytes) - Width
+                        ('y_dimension', 'I'),  # unsigned int (4 bytes) - Height
+                        ('annotation_length', 'I'),  # unsigned int (4 bytes) - Length of the annotation
+                        ('annotation', 'wchar_t'),  # wchar_t[annotation_length] - Annotation text
+                    ]
+                }),
+
             ]
         },
         138: {
@@ -313,38 +322,51 @@ class PDZ25Tool(BasePDZTool):
         1001: {
             "name": 'Libs Alloy Results',
             "fields": [
-        ('is_auto_selected', 'h'),  # bool (2 bytes)
-        ('std_dev_multiplier', 'H'),  # unsigned short (2 bytes)
-        ('library_name_length', 'I'),  # unsigned int (4 bytes)
-        ('library_name', 'wchar_t'),  # wchar_t string
-        ('created', 'system_time'),  # SYSTEMTIME (16 bytes)
-        ('created_by_length', 'I'),  # unsigned int (4 bytes)
-        ('created_by', 'wchar_t'),  # wchar_t string
-        ('num_elements', 'h'),  # short (2 bytes) - number of elements to repeat
-        ('element_name', 'wchar_t'),
-        ('element_percentage', 'f'),
-        ('element_lod', 'f'),
-        ('element_std_dev', 'f'),
-        ('element_max', 'f'),
-        ('element_min', 'f'),
-        # Repeated block for each element based on `num_elements`
-    ]
+                ('is_auto_selected', 'h'),  # bool (2 bytes)
+                ('std_dev_multiplier', 'H'),  # unsigned short (2 bytes)
+                ('library_name_length', 'I'),  # unsigned int (4 bytes)
+                ('library_name', 'wchar_t'),  # wchar_t string
+                ('created', 'system_time'),  # SYSTEMTIME (16 bytes)
+                ('created_by_length', 'I'),  # unsigned int (4 bytes)
+                ('created_by', 'wchar_t'),  # wchar_t string
+                ('num_elements', 'h'), # short (2 bytes) - number of elements to repeat
+                ('elements', {
+                    'repeat': 'num_elements',
+                    'fields': [
+                        ('element_name', 'wchar_t'),
+                        ('element_percentage', 'f'),
+                        ('element_lod', 'f'),
+                        ('element_std_dev', 'f'),
+                        ('element_max', 'f'),
+                        ('element_min', 'f'),
+                    ]
+                }),
+            ]
         },
         1002: {
             "name": 'Libs Grade ID Results',
             "fields": [
                 ('num_grade_ids', 'H'),  # unsigned short (2 bytes) - Number of Grade IDs
-                ('grade_id_length', 'I'),
-                ('grade_id', 'wchar_t'),
-                ('grade_id_confidence', 'f'),
-                # Repeat `grade_id_length`, `grade_id`, `grade_id_confidence` for each Grade ID based on `num_grade_ids`
+                ('grade_ids', {
+                    'repeat': 'num_elements',
+                    'fields': [
+                        ('grade_id_length', 'I'),
+                        ('grade_id', 'wchar_t'),
+                        ('confidence', 'f'),
+                    ]
+                }),
                 ('match_spread_threshold', 'f'),
                 ('num_grade_libs', 'H'),  # unsigned short (2 bytes) - Number of Grade Libraries
-                ('grade_lib_file_name_length', 'I'),
-                ('grade_lib_file_name', 'wchar_t'),
-                ('grade_lib_ver_length', 'I'),
-                ('grade_lib_version', 'wchar_t'),
-                # Repeat `grade_lib_file_name_length`, `grade_lib_file_name`, `grade_lib_ver_length`, `grade_lib_version` for each Grade Library based on `num_grade_libs`
+                ('grade_libs', {
+                    'repeat': 'num_grade_libs',
+                    'fields': [
+                        ('file_name_length', 'I'),
+                        ('file_name', 'wchar_t'),
+                        ('ver_length', 'I'),
+                        ('version', 'wchar_t'),
+                    ]
+                }),
+
             ]
         },
         1003: {
@@ -376,7 +398,6 @@ class PDZ25Tool(BasePDZTool):
                 ('field_name', 'wchar_t'),  # Name of the field
                 ('field_value_length', 'I'),  # unsigned int (4 bytes)
                 ('field_value', 'wchar_t'),  # Value of the field
-                # Repeat `field_name_length`, `field_name`, `field_value_length`, `field_value` for `num_fields`
                 ('spectrum_data_length', 'I'),  # unsigned int (4 bytes)
                 ('spectrum_data', 'float_array')  # Spectrum’s x and y values in format {x, y, x, y, ...}
             ]

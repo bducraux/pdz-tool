@@ -5,7 +5,7 @@ from .utils import read_pdz_file, get_pdz_version
 
 
 class PDZTool:
-    def __init__(self, file_path, verbose=False):
+    def __init__(self, file_path, verbose=False, debug=False):
         self.file_path = file_path
         self.verbose = verbose
 
@@ -15,9 +15,9 @@ class PDZTool:
 
         # Now instantiate the correct tool
         if pdz_version == "pdz25":
-            self.tool = PDZ25Tool(file_path, verbose)
+            self.tool = PDZ25Tool(file_path, verbose, debug)
         elif pdz_version == "pdz24":
-            self.tool = PDZ24Tool(file_path, verbose)
+            self.tool = PDZ24Tool(file_path, verbose, debug)
         else:
             raise ValueError(f"Unknown PDZ version: {pdz_version}")
 

@@ -1,10 +1,12 @@
 import os
-
-from numpy.f2py.crackfortran import debug
+import traceback
 
 from pdz_tool import PDZTool
 
 def main():
+    # Debugging
+    debug_mode = True
+
     # Directory containing the demo PDZ files
     demo_dir = os.path.dirname(__file__)
 
@@ -21,26 +23,28 @@ def main():
         try:
             print(f"Processing {pdz_file}...")
 
-            pdz_tool = PDZTool(pdz_file, verbose=True, debug=True)
+            pdz_tool = PDZTool(pdz_file, verbose=True, debug=debug_mode)
             pdz_file_name = os.path.splitext(os.path.basename(pdz_file))[0]
 
             print(f"PDZ Version: {pdz_tool.pdz_version}")
             print(f"PDZ Bytes: {pdz_tool.pdz_bytes[:10]}...")
+            print(f"PDZ Record Types Count: {len(pdz_tool.record_types)}")
 
             print("Parsing file...")
-            pdz_tool.parse()
+            parsed_pdz = pdz_tool.parse()  # dict with parsed pdz data
 
-            print(f"Parsed data JSON: {pdz_tool.to_json()}")
+            parsed_json = pdz_tool.to_json()
+            print(f"Parsed pdz JSON: {parsed_json[0:100]}...")
             print("Saving JSON...")
             pdz_tool.save_json(output_dir=demo_dir + "/output")
 
             print("Saving CSV for XRF Spectrum...")
+            print(f"Possible Record Names: {pdz_tool.record_names}")
             pdz_tool.save_csv(output_dir=demo_dir + "/output")
-
-            print("Saving CSV for XRF Instrument...")
-            pdz_tool.save_csv(record_name="XRF Instrument", output_dir=demo_dir + "/output")
         except Exception as e:
             print(f"An error occurred while processing {pdz_file}: {e}")
+            if debug_mode:
+                traceback.print_exc()
             continue
 
 if __name__ == '__main__':

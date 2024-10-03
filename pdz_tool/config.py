@@ -2,6 +2,10 @@
 Config file for PDZ tool
 """
 
+"""
+PDZ Tool version
+"""
+VERSION = "0.2.0"
 
 """
 Supoorted PDZ versions

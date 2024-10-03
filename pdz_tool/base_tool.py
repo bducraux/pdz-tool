@@ -4,7 +4,6 @@ import csv
 import os
 
 from .utils import read_pdz_file, get_pdz_version, flatten_system_date_time
-from .config import SUPPORTED_PDZ_VERSIONS
 
 class BasePDZTool(ABC):
     def __init__(self, file_path: str, verbose: bool = False, debug: bool = False):
@@ -102,4 +101,4 @@ class BasePDZTool(ABC):
                 for index, count in enumerate(spectrum_data, start=1):
                     csvwriter.writerow([index, count])
 
-        print(f"CSV file created: {output_file}")
+        self._print_verbose(f"CSV file created: {output_file}")

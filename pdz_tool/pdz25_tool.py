@@ -447,6 +447,7 @@ class PDZ25Tool(BasePDZTool):
             # Store the block info
             record_types.append({
                 'record_type': record_type,
+                'record_name': self.RECORDS.get(record_type, {}).get('name', f'Unknown Record Type {record_type}'),
                 'data_length': data_length,
                 'bytes': block_data
             })
@@ -600,10 +601,8 @@ class PDZ25Tool(BasePDZTool):
         :return:
         """
         try:
-            record_types = self.get_record_types()
-
             parsed_data = {}
-            for record in record_types:
+            for record in self.record_types:
                 record_type = record['record_type']
                 block_bytes = record['bytes']
                 record_type_name = self.RECORDS.get(record_type, {}).get('name', 'Unknown')

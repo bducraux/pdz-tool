@@ -52,6 +52,7 @@ class PDZ24Tool(BasePDZTool):
         first_record_bytes = self.pdz_bytes[:6]
         record_types.append({
             'record_type': 0,
+            'record_name': 'File Header',
             'data_length': 6,
             'bytes': first_record_bytes
         })
@@ -63,6 +64,7 @@ class PDZ24Tool(BasePDZTool):
         if remaining_length > 0:
             record_types.append({
                 'record_type': 1,
+                'record_name': 'XRF Spectrum',
                 'data_length': remaining_length,
                 'bytes': remaining_bytes
             })
@@ -140,10 +142,8 @@ class PDZ24Tool(BasePDZTool):
         :return:
         """
         try:
-            record_types = self.get_record_types()
-
             parsed_data = {}
-            for record in record_types:
+            for record in self.record_types:
                 record_type = record['record_type']
                 block_bytes = record['bytes']
                 record_type_name = self.RECORDS.get(record_type, {}).get('name', 'Unknown')

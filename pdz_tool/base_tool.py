@@ -8,12 +8,15 @@ from .config import SUPPORTED_PDZ_VERSIONS
 
 class BasePDZTool(ABC):
     def __init__(self, file_path: str, verbose: bool = False, debug: bool = False):
+        self.verbose = verbose
+        self.debug = debug
         self.file_path = file_path
         self.pdz_file_name: str = os.path.splitext(os.path.basename(self.file_path))[0]
         self.pdz_bytes: bytes = read_pdz_file(file_path)
+        self.record_types: list = self.get_record_types()
+        self.record_names: list = [record['record_name'] for record in self.record_types]
         self.pdz_version: str = get_pdz_version(self.pdz_bytes)
-        self.verbose = verbose
-        self.debug = debug
+
 
         if self.debug:
             self.verbose = True
@@ -72,7 +75,7 @@ class BasePDZTool(ABC):
         - file_prefix (str): Prefix for the output file name.
         """
         if record_name not in self.parsed_data:
-            raise ValueError(f"Node '{record_name}' not found in the provided data.")
+            raise ValueError(f"Node '{record_name}' not found in the provided data. File: {self.file_path}")
 
         node_data = self.parsed_data[record_name]
         output_file = os.path.join(output_dir, f"{self.pdz_file_name}_{record_name.replace(' ', '_').lower()}.csv")

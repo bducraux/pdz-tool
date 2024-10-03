@@ -20,11 +20,11 @@ pip install pdz-tool
 ## Usage
 
 ```python
-#### 1.Importing and Initializing PDZTool
+#### 1. Importing and Initializing PDZTool
 from pdz_tool import PDZTool
 
 # Initialize a PDZTool object
-pdz_tool = PDZTool('path/to/pdz_file.pdz', verbose=True, debug=True)
+pdz_tool = PDZTool('path/to/pdz_file.pdz')
 
 #### 2. Parsing a PDZ File
 parsed_data = pdz_tool.parse()

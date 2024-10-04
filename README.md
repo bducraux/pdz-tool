@@ -46,6 +46,12 @@ pdz_tool.to_json('output.json')
 pdz_tool.to_csv('output.csv')
 ```
 
+### CLI Usage:
+```bash
+pdz-tool path/to/pdz_file.pdz
+```
+see `pdz-tool --help` for more options.
+
 ## Demo
  Demo folder is included in the project, containing example PDZ files to help you get started. 
  You can run the demo script to test the functionality of the PDZ-Tool:

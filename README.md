@@ -2,14 +2,17 @@
 
 **PDZ-Tool** is a Python library for reading PDZ files and converting them into CSV or JSON formats. PDZ files are commonly used to store data from X-ray fluorescence (XRF) instruments, and this tool allows easy extraction and transformation of the data for analysis.
 
-## Features
+## 🚀 Features
 
 - **Read PDZ files in version 24 and 25 formats.**
 - **Parse and extract important information from the PDZ file into JSON format.**
 - **Convert the parsed data to CSV format for further analysis.**
+- **Save the parsed data to a JSON file.**
+- **CLI tool for parsing and converting PDZ files.**
+- **Demo script to help you get started.**
 - **Verbose and debug modes to help troubleshoot issues during parsing.**
 
-## Installation
+## 📥 Installation
 
 You can install `pdz-tool` via `pip`.
 
@@ -17,7 +20,7 @@ You can install `pdz-tool` via `pip`.
 pip install pdz-tool
 ```
 
-## Usage
+## 📖 Usage
 
 ```python
 #### 1. Importing and Initializing PDZTool
@@ -46,20 +49,20 @@ pdz_tool.to_json('output.json')
 pdz_tool.to_csv('output.csv')
 ```
 
-### CLI Usage:
+### 💻 CLI Usage:
 ```bash
 pdz-tool path/to/pdz_file.pdz
 ```
 see `pdz-tool --help` for more options.
 
-## Demo
+## 🎓 Demo
  Demo folder is included in the project, containing example PDZ files to help you get started. 
  You can run the demo script to test the functionality of the PDZ-Tool:
 
 ```bash
 python demo/demo_script.py
 ```
-## Development
+## ⚙️ Development
 ### Cloning the Repository
 If you wish to modify or extend the tool, clone the repository:
     
@@ -68,7 +71,7 @@ git clone git@github.com:bducraux/pdz-tool.git
 cd pdz-tool
 ``` 
 
-### Dependencies
+### 📦 Dependencies
 #### Installing Poetry
 This project uses Poetry for dependency management. If you don't have Poetry installed, you can install it by running:
 
@@ -82,13 +85,13 @@ To install the dependencies, run:
 poetry install
 ```
 
-## Contributing
+## 🤝 Contributing
 Contributions are welcome! If you find any bugs or have suggestions for new features, feel free to open an issue or submit a pull request.
 
-## License
+## 📜  License
 This project is licensed under the MIT License. See the LICENSE file for details.
 
-## Contact
+## 📧 Contact
 For any inquiries or support, please reach out at [bruno.drx@gmail.com](mailto:bruno.drx@gmail.com).
 
-Thank you for using PDZ-Tool! 😊
+Thank you for using PDZ-Tool! 🎉😊

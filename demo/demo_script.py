@@ -34,13 +34,17 @@ def main():
             parsed_pdz = pdz_tool.parse()  # dict with parsed pdz data
 
             parsed_json = pdz_tool.to_json()
-            print(f"Parsed pdz JSON: {parsed_json[0:100]}...")
-            print("Saving JSON...")
-            pdz_tool.save_json(output_dir=demo_dir + "/output")
+            if parsed_json:
+                print(f"Parsed pdz JSON: {parsed_json[0:100]}...")
+                print("Saving JSON...")
+                pdz_tool.save_json(output_dir=demo_dir + "/output")
 
             print("Saving CSV for XRF Spectrum...")
             print(f"Possible Record Names: {pdz_tool.record_names}")
             pdz_tool.save_csv(output_dir=demo_dir + "/output")
+
+            print("Saving CSV for File Header and XRF Instrument...")
+            pdz_tool.save_csv(output_dir=demo_dir + "/output", record_names=['File Header', 'XRF Instrument'], output_suffix="_header_and_instrument")
         except Exception as e:
             print(f"An error occurred while processing {pdz_file}: {e}")
             if debug_mode:

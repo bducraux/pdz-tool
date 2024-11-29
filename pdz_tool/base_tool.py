@@ -57,11 +57,12 @@ class BasePDZTool(ABC):
         except Exception as e:
             self._print_verbose(f"Error saving data to JSON: {e}")
 
-    def save_csv(self, record_name: str = "XRF Spectrum", output_dir: str = '.'):
+    def save_csv(self, record_names: list[str] = ["XRF Spectrum"], output_dir: str = '.', output_suffix: str = None):
         """
-        Save the parsed data to a CSV file for the node specified by `node_name`.
-        :param record_name: str Default is "XRF Spectrum", can be "File Header", "XRF Instrument", etc.
+        Save the parsed data to a CSV file for the records specified by `record_names`.
+        :param record_names: list[str] Default is ["XRF Spectrum"], can be ["File Header", "XRF Instrument", etc.]
         :param output_dir: str Default is '.', the current directory.
+        :param output_suffix: str If None (default), sets to `_lowercase_record_name` if one record name provided and `_multiple_records` if multiple record names provided.
         :return:
         """
         """
@@ -69,21 +70,34 @@ class BasePDZTool(ABC):
 
         Args:
         - data (dict): The parsed data structure.
-        - record_name (str): The specific record name to process (e.g., "File Header").
+        - record_names (list[str]): The specific record name to process (e.g., ["File Header", "XRF Spectrum"]).
         - output_dir (str): Directory to save the output CSV file.
-        - file_prefix (str): Prefix for the output file name.
+        - output_suffix (str): String to append to filename of CSV file before `.csv`.
         """
-        if record_name not in self.parsed_data:
-            raise ValueError(f"Node '{record_name}' not found in the provided data. File: {self.file_path}")
+        if not record_names:
+            self._print_verbose(f"No CSV file created because no record names were provided")
+            return
 
-        node_data = self.parsed_data[record_name]
-        output_file = os.path.join(output_dir, f"{self.pdz_file_name}_{record_name.replace(' ', '_').lower()}.csv")
+        record_data = {}
+
+        for record_name in record_names:
+            if record_name not in self.parsed_data:
+                raise ValueError(f"Node '{record_name}' not found in the provided data. File: {self.file_path}")
+            record_data.update(self.parsed_data[record_name])
+
+        if output_suffix is None:
+            if len(record_names) == 1:
+                output_suffix = f"_{record_names[0].replace(' ', '_').lower()}"  # Use record name as suffix if only one provided
+            else:
+                output_suffix = "_multiple_records"
+
+        output_file = os.path.join(output_dir, f"{self.pdz_file_name}{output_suffix}.csv")
 
         with open(output_file, 'w', newline='') as csvfile:
             csvwriter = csv.writer(csvfile)
 
             # Write all other key-value pairs first
-            for key, value in node_data.items():
+            for key, value in record_data.items():
                 if key == "acquisition_date_time":
                     # Combine acquisition_date_time into a single string
                     date_time_str = flatten_system_date_time(value)
@@ -95,9 +109,9 @@ class BasePDZTool(ABC):
                     csvwriter.writerow([key, value])
 
             # Handle spectrum_data as channel number and count
-            if "spectrum_data" in node_data:
+            if "spectrum_data" in record_data:
                 csvwriter.writerow(['channel_number', 'channel_count'])
-                spectrum_data = node_data["spectrum_data"]
+                spectrum_data = record_data["spectrum_data"]
                 for index, count in enumerate(spectrum_data, start=1):
                     csvwriter.writerow([index, count])
 

@@ -46,6 +46,19 @@ class BasePDZTool(ABC):
         except Exception as e:
             self._print_verbose(f"Error transforming data to JSON: {e}")
 
+    def get_images_bytes(self):
+        """Get bytes of images as a list."""
+        if hasattr(self, 'parsed_data'):
+            image_record = self.parsed_data.get('Image Details', 0)
+            images_bytes = []
+            if image_record:
+                for image in image_record.get('images'):
+                    images_bytes.append(image['image'])
+            else:
+                self._print_verbose(f"No images found: {self.file_path}")
+            return images_bytes
+        else:
+            raise ValueError(f"PDZ data not yet parsed and set. Run method `.parse()` before attempting to get images.")
 
     def save_json(self, output_dir: str = '.'):
         """Save the parsed data to a JSON file."""
@@ -116,3 +129,28 @@ class BasePDZTool(ABC):
                     csvwriter.writerow([index, count])
 
         self._print_verbose(f"CSV file created: {output_file}")
+
+    def save_images(self, output_dir: str = '.', output_suffix: str = '_'):
+        """
+        Save the parsed images to individual JPEG files.
+        :param output_dir: str Default is '.', the current directory.
+        :param output_suffix: str Default is '_', where the filename of each JPEG is `pdz_file_name` + `output_suffix` + `#.jpeg`.
+        :return:
+        """
+        """
+        Write parsed image data to JPEG files.
+
+        Args:
+        - output_dir (str): Directory to save the images as JPEG files.
+        - output_suffix (str): String to append to filename of JPEG file before `#.jpeg`.
+        """
+        try:
+            images_bytes = self.get_images_bytes()
+            n = len(images_bytes)
+            for i, image_bytes in enumerate(images_bytes):
+                output_file = os.path.join(output_dir, f"{self.pdz_file_name}{output_suffix}{i}.jpeg")
+                with open(output_file, 'wb') as f:
+                    f.write(image_bytes)
+                self._print_verbose(f"Image {i+1} of {n} saved to {output_file}")
+        except Exception as e:
+            self._print_verbose(f"Error saving images: {e}")

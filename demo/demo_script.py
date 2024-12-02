@@ -15,7 +15,8 @@ def main():
         os.path.join(demo_dir, 'pdz24_example.pdz'),
         os.path.join(demo_dir, 'pdz24_example_2.pdz'),
         os.path.join(demo_dir, 'pdz25_example.pdz'),
-        os.path.join(demo_dir, 'pdz25_example_2.pdz')
+        os.path.join(demo_dir, 'pdz25_example_2.pdz'),
+        os.path.join(demo_dir, 'pdz25_example_images.pdz')
     ]
 
     # Process each PDZ file
@@ -45,6 +46,15 @@ def main():
 
             print("Saving CSV for File Header and XRF Instrument...")
             pdz_tool.save_csv(output_dir=demo_dir + "/output", record_names=['File Header', 'XRF Instrument'], output_suffix="_header_and_instrument")
+
+            image_record = parsed_pdz.get('Image Details', 0)
+            if image_record:
+                print(f"Saving {image_record['num_images']} images as JPEGs...")
+                pdz_tool.save_images(
+                    output_dir=demo_dir + "/output",
+                    output_suffix='-')  # filename-0.jpeg, filename-1.jpeg, etc.
+
+
         except Exception as e:
             print(f"An error occurred while processing {pdz_file}: {e}")
             if debug_mode:

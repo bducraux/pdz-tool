@@ -577,6 +577,21 @@ class PDZ25Tool(BasePDZTool):
                 fmt = f'<{num_channels}L'  # Little-endian unsigned long array
                 spectrum_data = struct.unpack_from(fmt, block_bytes, offset)
                 return list(spectrum_data), n_bytes
+            
+            elif field_type == 'bytes':
+
+                # Handle image bytes
+                if field_name == 'image':
+                    length_field_name = field_name + '_length'
+                    length = result.get(length_field_name, 0)
+                    n_bytes = length
+
+                    if offset + n_bytes > total_byte_length:
+                        self._print_verbose(f"Error: Insufficient bytes for {field_name}")
+                        return None, 0
+                    
+                    jpg_bytes = block_bytes[offset:offset+n_bytes]
+                    return jpg_bytes, len(jpg_bytes)
 
             # Regular struct unpacking
             fmt = '<' + field_type

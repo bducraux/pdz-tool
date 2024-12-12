@@ -42,7 +42,7 @@ def main():
 
             print("Saving CSV for XRF Spectrum...")
             print(f"Possible Record Names: {pdz_tool.record_names}")
-            pdz_tool.save_csv(output_dir=demo_dir + "/output")
+            pdz_tool.save_csv(output_dir=demo_dir + "/output")  # use include_channel_start_kev=True to add calculated column for spectra
 
             print("Saving CSV for File Header and XRF Instrument...")
             pdz_tool.save_csv(output_dir=demo_dir + "/output", record_names=['File Header', 'XRF Instrument'], output_suffix="_header_and_instrument")

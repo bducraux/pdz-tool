@@ -70,7 +70,13 @@ class BasePDZTool(ABC):
         except Exception as e:
             self._print_verbose(f"Error saving data to JSON: {e}")
 
-    def save_csv(self, record_names: list[str] = ["XRF Spectrum"], output_dir: str = '.', output_suffix: str = None):
+    def save_csv(
+            self,
+            record_names: list[str] = ["XRF Spectrum"],
+            output_dir: str = '.',
+            output_suffix: str = None,
+            include_channel_start_kev: bool = False
+            ):
         """
         Save the parsed data to a CSV file for the records specified by `record_names`.
         :param record_names: list[str] Default is ["XRF Spectrum"], can be ["File Header", "XRF Instrument", etc.]
@@ -123,10 +129,25 @@ class BasePDZTool(ABC):
 
             # Handle spectrum_data as channel number and count
             if "spectrum_data" in record_data:
-                csvwriter.writerow(['channel_number', 'channel_count'])
-                spectrum_data = record_data["spectrum_data"]
-                for index, count in enumerate(spectrum_data, start=1):
-                    csvwriter.writerow([index, count])
+                if include_channel_start_kev:
+                    csvwriter.writerow([
+                        'channel_number',
+                        'channel_start_kev (calculated)',
+                        'channel_count'])
+                    spectrum_data = record_data["spectrum_data"]
+                    channel_start_kev = record_data.get("channel_start", 0)/1000
+                    kev_per_channel = record_data.get("ev_per_channel", 0)/1000
+                    for index, count in enumerate(spectrum_data, start=1):
+                        csvwriter.writerow([
+                            index,
+                            channel_start_kev + (index - 1)*kev_per_channel,
+                            count
+                            ])
+                else:
+                    csvwriter.writerow(['channel_number', 'channel_count'])
+                    spectrum_data = record_data["spectrum_data"]
+                    for index, count in enumerate(spectrum_data, start=1):
+                        csvwriter.writerow([index, count])
 
         self._print_verbose(f"CSV file created: {output_file}")
 

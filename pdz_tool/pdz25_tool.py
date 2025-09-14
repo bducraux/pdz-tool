@@ -1,8 +1,10 @@
 import struct
 import traceback
+from typing import List, Dict, Any, Union, Tuple, Optional
 
 from .base_tool import BasePDZTool
 from .utils import decode_system_time, flatten_system_date_time
+from .field_parser import PDZ25FieldParser
 
 class PDZ25Tool(BasePDZTool):
     # Records for PDZ 25 format
@@ -404,10 +406,11 @@ class PDZ25Tool(BasePDZTool):
         }
     }
 
-    def __init__(self, file_path: str, verbose: bool = False, debug: bool = False):
+    def __init__(self, file_path: str, verbose: bool = False, debug: bool = False) -> None:
         super().__init__(file_path, verbose, debug)
+        self._field_parser = PDZ25FieldParser(verbose=verbose, debug=debug)
 
-    def get_record_types(self):
+    def get_record_types(self) -> List[Dict[str, Any]]:
         """
         Extracts blocks from PDZ 25 format.
         """
@@ -456,7 +459,7 @@ class PDZ25Tool(BasePDZTool):
 
         return record_types
 
-    def parse_record_type(self, record_type: int, block_bytes: bytes):
+    def parse_record_type(self, record_type: int, block_bytes: bytes) -> Union[str, Dict[str, Any]]:
         """
         Parse a specific record type.
         :param record_type: int Record type Id that is being parsed
@@ -481,136 +484,27 @@ class PDZ25Tool(BasePDZTool):
 
             # Handle repeatable blocks if `field_type` is a dict
             if isinstance(field_type, dict):
-                field_details = field_type
-                repeat_count = field_details['repeat']
-
-                # Resolve `repeat_count` if it's a string (dynamic count)
-                if isinstance(repeat_count, str):
-                    repeat_count = int(result.get(repeat_count, 0))
-
-                if repeat_count == 0:
-                    self._print_verbose(f"Skipping repeatable block {field_name} with {repeat_count} repeats")
-                    continue
-
-                sub_fields = field_details['fields']
-                repeated_data = []
-
-                for _ in range(repeat_count):
-                    sub_result = {}
-                    for sub_field_name, sub_field_type in sub_fields:
-                        sub_value, sub_size = self._parse_field(sub_field_name, sub_field_type, block_bytes, offset,
-                                                                sub_result)
-                        if sub_value is None:
-                            break
-                        sub_result[sub_field_name] = sub_value
-                        offset += sub_size
-                    repeated_data.append(sub_result)
-
-                # Store repeated data
-                result[field_name] = repeated_data
-
+                repeated_data, new_offset = self._field_parser.parse_repeatable_field(
+                    field_name, field_type, block_bytes, offset, result
+                )
+                if repeated_data is not None:
+                    result[field_name] = repeated_data
+                offset = new_offset
                 continue
 
-            # Handle normal tuple field
-            field_name, field_type = field
-
-            # Use _parse_field for normal tuple fields
-            field_value, field_size = self._parse_field(field_name, field_type, block_bytes, offset, result)
-            if field_value is None:
+            # Handle normal tuple field using shared parser
+            field_value, field_size = self._field_parser.parse_field(
+                field_name, field_type, block_bytes, offset, result
+            )
+            if field_value is None and field_size == 0:
                 break
-            result[field_name] = field_value
+            if field_value is not None:
+                result[field_name] = field_value
             offset += field_size
 
         return result
 
-    def _parse_field(self, field_name, field_type, block_bytes, offset, result):
-        total_byte_length = len(block_bytes)
-
-        try:
-            # Handle wchar_t strings
-            if 'wchar_t' in field_type:
-                if field_type == 'wchar_t':
-                    length_field_name = field_name + '_length'
-                    length = result.get(length_field_name, 0)
-                    n_bytes = length * 2
-                else:
-                    length = int(field_type.split('[')[1].split(']')[0])
-                    n_bytes = length * 2
-
-                if offset + n_bytes > total_byte_length:
-                    self._print_verbose(f"Error: Insufficient bytes for {field_name}")
-                    return None, 0
-
-                string_data_bytes = block_bytes[offset:offset + n_bytes]
-                string_data = string_data_bytes.decode('utf-16').strip('\x00')
-                return string_data, n_bytes
-
-            # Handle system_time fields
-            elif field_type == 'system_time':
-                n_bytes = 16
-                if offset + n_bytes > total_byte_length:
-                    self._print_verbose(f"Error: Insufficient bytes for {field_name}")
-                    return None, 0
-
-                year, month, day_of_week, day, hour, minute, second, milliseconds = struct.unpack_from('<8H',
-                                                                                                       block_bytes, offset)
-                acquisition_datetime = {
-                    "year": year,
-                    "month": month,
-                    "day": day,
-                    "hour": hour,
-                    "minute": minute,
-                    "second": second,
-                    "milliseconds": milliseconds
-                }
-                return flatten_system_date_time(acquisition_datetime), n_bytes
-
-            # Handle spectrum_data fields
-            elif field_type == 'spectrum_data':
-                num_channels = result.get('channels', 0)
-                n_bytes = num_channels * 4  # 4 bytes per channel
-
-                if offset + n_bytes > total_byte_length:
-                    self._print_verbose(f"Error: Insufficient bytes for {field_name}")
-                    return None, 0
-
-                fmt = f'<{num_channels}L'  # Little-endian unsigned long array
-                spectrum_data = struct.unpack_from(fmt, block_bytes, offset)
-                return list(spectrum_data), n_bytes
-            
-            elif field_type == 'bytes':
-
-                # Handle image bytes
-                if field_name == 'image':
-                    length_field_name = field_name + '_length'
-                    length = result.get(length_field_name, 0)
-                    n_bytes = length
-
-                    if offset + n_bytes > total_byte_length:
-                        self._print_verbose(f"Error: Insufficient bytes for {field_name}")
-                        return None, 0
-                    
-                    jpg_bytes = block_bytes[offset:offset+n_bytes]
-                    return jpg_bytes, len(jpg_bytes)
-
-            # Regular struct unpacking
-            fmt = '<' + field_type
-            size = struct.calcsize(fmt)
-
-            if offset + size > total_byte_length:
-                self._print_verbose(f"Error: Insufficient bytes for {field_name}")
-                return None, 0
-
-            value = struct.unpack_from(fmt, block_bytes, offset)[0]
-            return value, size
-
-        except struct.error as e:
-            self._print_verbose(f"Struct error in field {field_name}: {e}")
-            if self.debug:
-                traceback.print_exc()
-            return None, 0
-
-    def parse(self):
+    def parse(self) -> Optional[Dict[str, Any]]:
         """
         Parse the PDZ file and set the parsed data.
         :return:
@@ -632,8 +526,18 @@ class PDZ25Tool(BasePDZTool):
             self.parsed_data = parsed_data
 
             return self.parsed_data
+        except (struct.error, ValueError) as e:
+            self._print_verbose(f"Error parsing PDZ25 file structure: {e}")
+            if self.debug:
+                traceback.print_exc()
+            return None
+        except (KeyError, AttributeError) as e:
+            self._print_verbose(f"Error accessing PDZ25 record data: {e}")
+            if self.debug:
+                traceback.print_exc()
+            return None
         except Exception as e:
-            self._print_verbose(f"Error parsing PDZ file: {e}")
+            self._print_verbose(f"Unexpected error parsing PDZ25 file: {e}")
             if self.debug:
                 traceback.print_exc()
             return None

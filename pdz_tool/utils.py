@@ -1,12 +1,13 @@
 import struct
+from typing import Dict, Union
 from .config import SUPPORTED_PDZ_VERSIONS
 
-def read_pdz_file(file_path):
+def read_pdz_file(file_path: str) -> bytes:
     """Reads the PDZ file and returns its bytes."""
     with open(file_path, 'rb') as opened_file:
         return opened_file.read()
 
-def get_pdz_version(pdz_bytes):
+def get_pdz_version(pdz_bytes: bytes) -> str:
     """Extracts the PDZ version from the first two bytes of `pdz_bytes`."""
     if len(pdz_bytes) < 2:
         raise ValueError("Insufficient bytes for PDZ version")
@@ -15,7 +16,7 @@ def get_pdz_version(pdz_bytes):
 
     return SUPPORTED_PDZ_VERSIONS.get(version, "unknown")
 
-def decode_system_time(system_time_bytes):
+def decode_system_time(system_time_bytes: bytes) -> Dict[str, int]:
     """
     Decode SYSTEMTIME structure into a dictionary.
     """
@@ -32,7 +33,7 @@ def decode_system_time(system_time_bytes):
     }
     return system_time
 
-def flatten_system_date_time(date_time_data: dict):
+def flatten_system_date_time(date_time_data: Union[Dict[str, int], str]) -> str:
     """
     Converts a nested acquisition date/time dict into a single formatted string.
     """

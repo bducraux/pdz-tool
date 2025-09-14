@@ -162,3 +162,4 @@ cython_debug/
 .idea/
 
 /demo/output/*
+/task.md

@@ -1,7 +1,9 @@
 import struct
 import traceback
+from typing import List, Dict, Any, Union, Optional, Tuple
 
 from .base_tool import BasePDZTool
+from .field_parser import PDZ24FieldParser
 
 class PDZ24Tool(BasePDZTool):
     RECORDS = {
@@ -29,10 +31,11 @@ class PDZ24Tool(BasePDZTool):
         },
     }
 
-    def __init__(self, file_path: str, verbose: bool = False, debug: bool = False):
+    def __init__(self, file_path: str, verbose: bool = False, debug: bool = False) -> None:
         super().__init__(file_path, verbose, debug)
+        self._field_parser = PDZ24FieldParser(verbose=verbose, debug=debug)
 
-    def get_record_types(self):
+    def get_record_types(self) -> List[Dict[str, Any]]:
         """
         Extracts blocks from PDZ 24 format and splits into two records:
         - The first 6 bytes as record_type 0.
@@ -71,7 +74,7 @@ class PDZ24Tool(BasePDZTool):
 
         return record_types
 
-    def parse_record_type(self, record_type: int, block_bytes: bytes):
+    def parse_record_type(self, record_type: int, block_bytes: bytes) -> Union[str, Dict[str, Any]]:
         """
         Parse a specific record type.
         :param record_type: int Record type Id that is being parsed
@@ -92,39 +95,22 @@ class PDZ24Tool(BasePDZTool):
                 break
 
             try:
-                # Skip bytes based on the 's' indicator in the format
-                if field_name == 'skip':
-                    size = struct.calcsize(field_type)
-                    offset += size
-                    continue
-
-                # Handle dynamic spectrum data
-                if field_name == 'spectrum_data':
-                    num_channels = result.get('num_channels', 0)
-                    size = num_channels * 4  # Assuming each intensity value is a 4-byte float
-
-                    if offset + size > total_byte_length:
-                        self._print_verbose(f"Error: Insufficient bytes for {field_name}")
-                        break
-
-                    # Read the spectrum data as a list of floats
-                    fmt = f'<{num_channels}i'
-                    spectrum_data = struct.unpack_from(fmt, block_bytes, offset)
-                    result['spectrum_data'] = list(spectrum_data)
-                    offset += size
-                    continue
-
-                # Regular struct unpacking
-                fmt = '<' + field_type
-                size = struct.calcsize(fmt)
-
-                if offset + size > total_byte_length:
-                    self._print_verbose(f"Error: Insufficient bytes for {field_name}")
+                # Use shared field parser with PDZ24-specific error handling
+                field_value, field_size = self._field_parser.parse_field_with_error_codes(
+                    field_name, field_type, block_bytes, offset, result
+                )
+                
+                if field_value is None and field_size == -1:
+                    # Error occurred during parsing
                     break
-
-                value = struct.unpack_from(fmt, block_bytes, offset)[0]
-                result[field_name] = value
-                offset += size
+                elif field_value is None and field_size == 0:
+                    # Skip field, just update offset
+                    offset += field_size if field_size > 0 else struct.calcsize(field_type)
+                    continue
+                else:
+                    # Normal field parsing
+                    result[field_name] = field_value
+                    offset += field_size
 
             except Exception as e:
                 self._print_verbose(f"Error parsing field {field_name}: {e}")
@@ -134,7 +120,7 @@ class PDZ24Tool(BasePDZTool):
 
         return result
 
-    def parse(self):
+    def parse(self) -> Optional[Dict[str, Any]]:
         """
         Parse the PDZ file and set the parsed data.
         :return:
@@ -155,8 +141,18 @@ class PDZ24Tool(BasePDZTool):
             self.parsed_data = parsed_data
 
             return self.parsed_data
+        except (struct.error, ValueError) as e:
+            self._print_verbose(f"Error parsing PDZ24 file structure: {e}")
+            if self.debug:
+                traceback.print_exc()
+            return None
+        except (KeyError, AttributeError) as e:
+            self._print_verbose(f"Error accessing PDZ24 record data: {e}")
+            if self.debug:
+                traceback.print_exc()
+            return None
         except Exception as e:
-            self._print_verbose(f"Error parsing PDZ file: {e}")
+            self._print_verbose(f"Unexpected error parsing PDZ24 file: {e}")
             if self.debug:
                 traceback.print_exc()
             return None

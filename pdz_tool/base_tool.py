@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 import json
 import csv
 import os
+from typing import Dict, List, Optional, Any, Union
 
 from .utils import read_pdz_file, get_pdz_version, flatten_system_date_time
 
@@ -9,12 +10,29 @@ class BasePDZTool(ABC):
     def __init__(self, file_path: str, verbose: bool = False, debug: bool = False):
         self.verbose = verbose
         self.debug = debug
+        
+        # Validate file path
+        if not file_path:
+            raise ValueError("File path cannot be empty")
+        if not os.path.exists(file_path):
+            raise FileNotFoundError(f"PDZ file not found: {file_path}")
+        if not os.path.isfile(file_path):
+            raise ValueError(f"Path is not a file: {file_path}")
+        
         self.file_path = file_path
         self.pdz_file_name: str = os.path.splitext(os.path.basename(self.file_path))[0]
-        self.pdz_bytes: bytes = read_pdz_file(file_path)
-        self.record_types: list = self.get_record_types()
-        self.record_names: list = [record['record_name'] for record in self.record_types]
-        self.pdz_version: str = get_pdz_version(self.pdz_bytes)
+        
+        try:
+            self.pdz_bytes: bytes = read_pdz_file(file_path)
+        except IOError as e:
+            raise IOError(f"Failed to read PDZ file '{file_path}': {e}")
+        
+        try:
+            self.record_types: list = self.get_record_types()
+            self.record_names: list = [record['record_name'] for record in self.record_types]
+            self.pdz_version: str = get_pdz_version(self.pdz_bytes)
+        except Exception as e:
+            raise ValueError(f"Failed to parse PDZ file structure '{file_path}': {e}")
 
 
         if self.debug:
@@ -24,29 +42,35 @@ class BasePDZTool(ABC):
 
         self.parsed_data: dict = {}
 
-    def _print_verbose(self, message):
+    def _print_verbose(self, message: str) -> None:
         """Helper method to print messages when verbose is enabled."""
         if self.verbose:
             print(message)
 
+    @property
+    def version(self) -> str:
+        """Return the PDZ version for compatibility with tests."""
+        return self.pdz_version
+
     @abstractmethod
-    def get_record_types(self):
+    def get_record_types(self) -> List[Dict[str, Any]]:
         """Abstract method to extract blocks from the PDZ file."""
         pass
 
     @abstractmethod
-    def parse(self):
+    def parse(self) -> Dict[str, Any]:
         """Abstract method to parse the PDZ file. and set the parsed_data attribute."""
         pass
 
-    def to_json(self):
+    def to_json(self) -> Optional[str]:
         """Transform the parsed data to JSON."""
         try:
             return json.dumps(self.parsed_data, indent=4)
-        except Exception as e:
-            self._print_verbose(f"Error transforming data to JSON: {e}")
+        except (TypeError, ValueError, OverflowError) as e:
+            self._print_verbose(f"Error serializing data to JSON: {e}")
+            return None
 
-    def get_images_bytes(self):
+    def get_images_bytes(self) -> List[bytes]:
         """Get bytes of images as a list."""
         if hasattr(self, 'parsed_data'):
             image_record = self.parsed_data.get('Image Details', 0)
@@ -60,118 +84,131 @@ class BasePDZTool(ABC):
         else:
             raise ValueError(f"PDZ data not yet parsed and set. Run method `.parse()` before attempting to get images.")
 
-    def save_json(self, output_dir: str = '.'):
+    def save_json(self, output_dir: str = '.') -> None:
         """Save the parsed data to a JSON file."""
         try:
             output_file = os.path.join(output_dir, f"{self.pdz_file_name}.json")
+            json_data = self.to_json()
+            if json_data is None:
+                self._print_verbose("Cannot save JSON: data serialization failed")
+                return
             with open(output_file, 'w') as f:
-                f.write(self.to_json())
+                f.write(json_data)
             self._print_verbose(f"Data saved to {output_file}")
-        except Exception as e:
-            self._print_verbose(f"Error saving data to JSON: {e}")
+        except (OSError, IOError) as e:
+            self._print_verbose(f"Error writing JSON file '{output_file}': {e}")
+        except PermissionError as e:
+            self._print_verbose(f"Permission denied writing JSON file '{output_file}': {e}")
 
     def save_csv(
             self,
-            record_names: list[str] = ["XRF Spectrum"],
+            record_names: List[str] = ["XRF Spectrum"],
             output_dir: str = '.',
-            output_suffix: str = None,
+            output_suffix: Optional[str] = None,
             include_channel_start_kev: bool = False
-            ):
-        """
-        Save the parsed data to a CSV file for the records specified by `record_names`.
-        :param record_names: list[str] Default is ["XRF Spectrum"], can be ["File Header", "XRF Instrument", etc.]
-        :param output_dir: str Default is '.', the current directory.
-        :param output_suffix: str If None (default), sets to `_lowercase_record_name` if one record name provided and `_multiple_records` if multiple record names provided.
-        :return:
-        """
-        """
-        Process a specific node in the data and write it to a CSV file.
-
+            ) -> None:
+        """Save the parsed data to a CSV file for the records specified by record_names.
+        
         Args:
-        - data (dict): The parsed data structure.
-        - record_names (list[str]): The specific record name to process (e.g., ["File Header", "XRF Spectrum"]).
-        - output_dir (str): Directory to save the output CSV file.
-        - output_suffix (str): String to append to filename of CSV file before `.csv`.
+            record_names: List of record names to include. Defaults to ["XRF Spectrum"].
+            output_dir: Directory to save the CSV file. Defaults to current directory.
+            output_suffix: Custom suffix for filename. If None, uses record name or "_multiple_records".
+            include_channel_start_kev: Whether to include calculated channel start keV values.
         """
         if not record_names:
             self._print_verbose(f"No CSV file created because no record names were provided")
             return
 
-        record_data = {}
+        # Collect and validate record data
+        record_data = self._collect_record_data(record_names)
+        
+        # Determine output file path
+        output_file = self._determine_csv_output_file(output_dir, output_suffix, record_names)
+        
+        # Write CSV content
+        self._write_csv_content(output_file, record_data, include_channel_start_kev)
+        
+        self._print_verbose(f"CSV file created: {output_file}")
 
+    def _collect_record_data(self, record_names: List[str]) -> Dict[str, Any]:
+        """Collect and validate record data from parsed_data."""
+        record_data = {}
         for record_name in record_names:
             if record_name not in self.parsed_data:
                 raise ValueError(f"Node '{record_name}' not found in the provided data. File: {self.file_path}")
             record_data.update(self.parsed_data[record_name])
+        return record_data
 
+    def _determine_csv_output_file(self, output_dir: str, output_suffix: Optional[str], record_names: List[str]) -> str:
+        """Determine the output file path for CSV."""
         if output_suffix is None:
             if len(record_names) == 1:
-                output_suffix = f"_{record_names[0].replace(' ', '_').lower()}"  # Use record name as suffix if only one provided
+                output_suffix = f"_{record_names[0].replace(' ', '_').lower()}"
             else:
                 output_suffix = "_multiple_records"
+        return os.path.join(output_dir, f"{self.pdz_file_name}{output_suffix}.csv")
 
-        output_file = os.path.join(output_dir, f"{self.pdz_file_name}{output_suffix}.csv")
-
+    def _write_csv_content(self, output_file: str, record_data: Dict[str, Any], include_channel_start_kev: bool) -> None:
+        """Write the CSV content to file."""
         with open(output_file, 'w', newline='') as csvfile:
             csvwriter = csv.writer(csvfile)
-
-            # Write all other key-value pairs first
-            for key, value in record_data.items():
-                if key == "acquisition_date_time":
-                    # Combine acquisition_date_time into a single string
-                    date_time_str = flatten_system_date_time(value)
-                    csvwriter.writerow([key, date_time_str])
-                elif key == "spectrum_data":
-                    # Skip for now, handled separately
-                    continue
-                else:
-                    csvwriter.writerow([key, value])
-
-            # Handle spectrum_data as channel number and count
+            
+            # Write metadata fields
+            self._write_csv_metadata(csvwriter, record_data)
+            
+            # Write spectrum data if present
             if "spectrum_data" in record_data:
-                if include_channel_start_kev:
-                    csvwriter.writerow([
-                        'channel_number',
-                        'channel_start_kev (calculated)',
-                        'channel_count'])
-                    spectrum_data = record_data["spectrum_data"]
-                    channel_start_kev = record_data.get("channel_start", 0)/1000
-                    kev_per_channel = record_data.get("ev_per_channel", 0)/1000
-                    for index, count in enumerate(spectrum_data, start=1):
-                        csvwriter.writerow([
-                            index,
-                            channel_start_kev + (index - 1)*kev_per_channel,
-                            count
-                            ])
-                else:
-                    csvwriter.writerow(['channel_number', 'channel_count'])
-                    spectrum_data = record_data["spectrum_data"]
-                    for index, count in enumerate(spectrum_data, start=1):
-                        csvwriter.writerow([index, count])
+                self._write_csv_spectrum_data(csvwriter, record_data, include_channel_start_kev)
 
-        self._print_verbose(f"CSV file created: {output_file}")
+    def _write_csv_metadata(self, csvwriter: Any, record_data: Dict[str, Any]) -> None:
+        """Write metadata fields to CSV."""
+        for key, value in record_data.items():
+            if key == "acquisition_date_time":
+                date_time_str = flatten_system_date_time(value)
+                csvwriter.writerow([key, date_time_str])
+            elif key == "spectrum_data":
+                continue  # Skip spectrum_data, handled separately
+            else:
+                csvwriter.writerow([key, value])
 
-    def save_images(self, output_dir: str = '.', output_suffix: str = '_'):
-        """
-        Save the parsed images to individual JPEG files.
-        :param output_dir: str Default is '.', the current directory.
-        :param output_suffix: str Default is '_', where the filename of each JPEG is `pdz_file_name` + `output_suffix` + `#.jpeg`.
-        :return:
-        """
-        """
-        Write parsed image data to JPEG files.
+    def _write_csv_spectrum_data(self, csvwriter: Any, record_data: Dict[str, Any], include_channel_start_kev: bool) -> None:
+        """Write spectrum data to CSV."""
+        spectrum_data = record_data["spectrum_data"]
+        
+        if include_channel_start_kev:
+            csvwriter.writerow(['channel_number', 'channel_start_kev (calculated)', 'channel_count'])
+            channel_start_kev = record_data.get("channel_start", 0) / 1000
+            kev_per_channel = record_data.get("ev_per_channel", 0) / 1000
+            for index, count in enumerate(spectrum_data, start=1):
+                csvwriter.writerow([
+                    index,
+                    channel_start_kev + (index - 1) * kev_per_channel,
+                    count
+                ])
+        else:
+            csvwriter.writerow(['channel_number', 'channel_count'])
+            for index, count in enumerate(spectrum_data, start=1):
+                csvwriter.writerow([index, count])
 
+    def save_images(self, output_dir: str = '.', output_suffix: str = '_') -> None:
+        """Save the parsed images to individual JPEG files.
+        
         Args:
-        - output_dir (str): Directory to save the images as JPEG files.
-        - output_suffix (str): String to append to filename of JPEG file before `#.jpeg`.
+            output_dir: Directory to save the images as JPEG files. Defaults to current directory.
+            output_suffix: String to append to filename of JPEG file before `#.jpeg`. Defaults to '_'.
         """
         try:
             images_bytes = self.get_images_bytes()
             n = len(images_bytes)
             for i, image_bytes in enumerate(images_bytes):
                 output_file = os.path.join(output_dir, f"{self.pdz_file_name}{output_suffix}{i}.jpeg")
-                with open(output_file, 'wb') as f:
-                    f.write(image_bytes)
-                self._print_verbose(f"Image {i+1} of {n} saved to {output_file}")
-        except Exception as e:
-            self._print_verbose(f"Error saving images: {e}")
+                try:
+                    with open(output_file, 'wb') as f:
+                        f.write(image_bytes)
+                    self._print_verbose(f"Image {i+1} of {n} saved to {output_file}")
+                except (OSError, IOError) as e:
+                    self._print_verbose(f"Error writing image file '{output_file}': {e}")
+                except PermissionError as e:
+                    self._print_verbose(f"Permission denied writing image file '{output_file}': {e}")
+        except ValueError as e:
+            self._print_verbose(f"Error retrieving image data: {e}")

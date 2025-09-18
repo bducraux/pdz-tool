@@ -5,6 +5,53 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.5] - 2025-09-18
+
+### Fixed
+- **CLI Bug Fixes**: Fixed critical runtime errors in CLI that were preventing proper execution after the v0.2.4 release
+- **Mutable Default Argument**: Fixed bug in `save_csv()` method that could cause unpredictable CLI behavior
+- **Image Processing**: Fixed runtime error in `get_images_bytes()` method that could crash the CLI when processing certain PDZ files
+- **Exception Handling**: Fixed undefined variable references in error handling that masked real CLI errors
+- **CLI Image Extraction**: Fixed CLI to automatically detect and extract embedded images from PDZ files
+
+### Added
+- **Enhanced Image Processing**: Comprehensive image handling capabilities with metadata extraction and smart filename generation
+  - New `has_images()` method to check for embedded images
+  - New `get_image_metadata()` method to extract image dimensions, annotations, and details
+  - Enhanced `save_images()` method with automatic directory creation, annotation-based filenames, and detailed verbose output
+- **File Summary System**: Complete file analysis and reporting functionality
+  - New `get_summary()` method returns structured analysis of PDZ file contents
+  - New `print_summary()` method provides formatted summary with file info, record types, multiphase detection, and content analysis
+- **Modern Path Handling**: Migrated to `pathlib.Path` for all file operations with automatic directory creation
+- **Enhanced Error Handling**: Improved type safety and defensive programming throughout the codebase
+
+### Improved
+- **Multi-Phase Support**: Enhanced multiphase detection and processing with better error messages
+- **File Operations**: UTF-8 encoding for all text file operations and robust error handling
+- **JSON Serialization**: Added `default=str` parameter to handle complex data types in JSON export
+- **Code Quality**: Comprehensive type hints, better validation, and consistent naming conventions
+- **CLI Integration**: All new features are automatically available through the CLI interface
+
+### Technical Details
+- Fixed `save_csv()` mutable default parameter: `record_names: List[str] = ["XRF Spectrum"]` → `record_names: Optional[List[str]] = None`
+- Added comprehensive image processing with metadata support for dimensions, annotations, and file sizes
+- Implemented file summary system with multiphase detection and content analysis
+- Enhanced path handling using `pathlib.Path` with automatic directory creation
+- Improved exception handling with proper variable initialization
+- All multiphase functionality remains unchanged and working correctly
+
+### Image Processing Features
+- **Smart Filename Generation**: Automatically includes image annotations in filenames when available
+- **Detailed Metadata**: Extracts image dimensions, annotations, and validates image data integrity
+- **Verbose Output**: Shows image dimensions, file sizes, and annotations during processing
+- **Format Support**: Configurable image format output (defaults to JPEG)
+
+### File Summary Features
+- **Comprehensive Analysis**: File info, version, size, record counts, and content detection
+- **Multi-Phase Detection**: Automatically identifies and reports multiphase measurements
+- **Spectrum Analysis**: Detailed voltage, current, and channel information for each phase
+- **Image Analysis**: Reports image count, dimensions, and annotations when present
+
 ## [0.2.4] - 2025-09-18
 
 ### Fixed
@@ -32,7 +79,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **New Test Module**: Added `tests/test_field_parser.py` for comprehensive field parsing functionality testing
 
 ### Changed
-- **Code Quality Enhancements**: Method refactoring following Single Responsibility Principle
+- **Code Quality Enhancements**: Method refactoring following the Single Responsibility Principle
 - **Architecture Improvements**: Improved separation of concerns across parsing modules
 - **Centralized Configuration**: Moved constants and field definitions to `config.py` for better maintainability
 - **Error Handling**: Replaced broad exception handling with specific exception types and improved error messages
@@ -44,7 +91,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **config.py**: Expanded configuration constants, added validation limits and error message templates
 
 ### Quality Assurance
-- ✅ All existing API methods preserved (full backward compatibility)
+- ✅ All existing API methods are preserved (full backward compatibility)
 - ✅ 100% test success rate (43/43 tests passing)
 - ✅ Comprehensive documentation with standardized docstrings
 - ✅ No breaking changes to public interfaces
@@ -70,7 +117,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Image Compatibility**: Improved handling of image bytes with new demo examples
 
 ### Acknowledgments
-- Welcome to new contributor [@larsmaxfield](https://github.com/larsmaxfield) for multiple contributions (PRs #2, #4, #6)
+- Welcome to the new contributor [@larsmaxfield](https://github.com/larsmaxfield) for multiple contributions (PRs #2, #4, #6)
 
 ## [0.2.0] - 2024-10-04
 

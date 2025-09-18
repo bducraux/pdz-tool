@@ -29,6 +29,18 @@ def parse_pdz_file(file_path, output_dir, output_format, verbose=False, debug=Fa
             print_verbose(f"PDZ Record Types Count: {len(pdz_tool.record_types)}", verbose=verbose)
             print_verbose(f"Record Names: {pdz_tool.record_names}", verbose=verbose)
 
+        # Check for images and extract them automatically
+        if pdz_tool.has_images():
+            print_verbose("Extracting embedded images ...", verbose=verbose)
+            saved_images = pdz_tool.save_images(output_dir=output_dir)
+            if saved_images:
+                print(f"Extracted {len(saved_images)} image(s) to {output_dir}")
+                if verbose:
+                    for img_path in saved_images:
+                        print(f"  - {os.path.basename(img_path)}")
+        else:
+            print_verbose("No embedded images found in PDZ file", verbose=verbose)
+
         if output_format == 'json' or output_format == 'all':
             print_verbose(f"Saving JSON to {output_dir} ...", verbose=verbose)
             pdz_tool.save_json(output_dir=output_dir)
@@ -36,6 +48,11 @@ def parse_pdz_file(file_path, output_dir, output_format, verbose=False, debug=Fa
         if output_format == 'csv' or output_format == 'all':
             print_verbose("Saving XRF Spectrum to CSV ...", verbose=verbose)
             pdz_tool.save_csv(output_dir=output_dir)
+
+        # Print summary information if verbose
+        if verbose:
+            print_verbose("\n=== File Summary ===", verbose=True)
+            pdz_tool.print_summary()
 
         print(f"File {file_path} processed successfully.")
     except Exception as e:

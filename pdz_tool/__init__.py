@@ -1,5 +1,5 @@
 __author__ = 'Bruno Ducraux'
-__version__ = '0.2.4'
+__version__ = '0.2.5'
 
 from .pdz_tool import PDZTool
 from .pdz25_tool import PDZ25Tool

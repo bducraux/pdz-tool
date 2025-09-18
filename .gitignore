@@ -163,3 +163,4 @@ cython_debug/
 
 /demo/output/*
 /task.md
+/test_output/

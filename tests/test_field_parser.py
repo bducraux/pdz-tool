@@ -19,7 +19,7 @@ class TestFieldParser:
         self.verbose_parser = FieldParser(verbose=True, debug=True)
     
     def test_parser_initialization(self):
-        """Test that parser initializes correctly."""
+        """Test that the parser initializes correctly."""
         assert self.parser.verbose is False
         assert self.parser.debug is False
         assert 'struct' in self.parser._parsers
@@ -124,8 +124,8 @@ class TestFieldParser:
         assert size == 10  # 5 wide characters * 2 bytes each
     
     def test_parse_system_time_field(self):
-        """Test parsing SYSTEMTIME fields."""
-        # Create a SYSTEMTIME structure: year=2023, month=12, day_of_week=5, day=25, hour=14, minute=30, second=45, ms=123
+        """Test parsing SYSTEM TIME fields."""
+        # Create a SYSTEM TIME structure: year=2023, month=12, day_of_week=5, day=25, hour=14, minute=30, second=45, ms=123
         data = struct.pack('<8H', 2023, 12, 5, 25, 14, 30, 45, 123)
         result = {}
         
@@ -134,7 +134,7 @@ class TestFieldParser:
         assert size == 16
     
     def test_parse_bytes_field_image(self):
-        """Test parsing bytes fields for images."""
+        """Test parsing byte fields for images."""
         test_bytes = b'\xFF\xD8\xFF\xE0'  # JPEG header
         result = {'image_length': len(test_bytes)}
         
@@ -178,7 +178,7 @@ class TestFieldParser:
     
     def test_parse_repeatable_field_dynamic_count(self):
         """Test parsing repeatable fields with dynamic count."""
-        # Create data for 3 items based on previously parsed count
+        # Create data for 3 items based on a previously parsed count
         data = struct.pack('<HHH', 10, 20, 30)
         result = {'item_count': 3}
         field_config = {
@@ -193,7 +193,7 @@ class TestFieldParser:
         assert value[2]['value'] == 30
     
     def test_parse_repeatable_field_zero_count(self):
-        """Test parsing repeatable fields with zero count."""
+        """Test parsing repeatable fields with zero counts."""
         data = b''
         result = {}
         field_config = {
@@ -275,7 +275,7 @@ class TestFieldParserErrorHandling:
     def test_parse_field_struct_error(self):
         """Test handling of struct.error exceptions."""
         # Create malformed data that will cause struct.error
-        data = b'\x01'  # Only 1 byte, but trying to parse 4-byte integer
+        data = b'\x01'  # Only 1 byte, but trying to parse a 4-byte integer
         result = {}
         
         value, size = self.parser.parse_field('test_field', 'I', data, 0, result)
@@ -283,7 +283,7 @@ class TestFieldParserErrorHandling:
         assert size == 0
     
     def test_parse_field_unknown_type(self):
-        """Test parsing field with unknown type (should use struct parser)."""
+        """Test parsing field with an unknown type (should use struct parser)."""
         data = struct.pack('<H', 42)
         result = {}
         

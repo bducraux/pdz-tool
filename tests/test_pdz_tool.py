@@ -1,11 +1,10 @@
-import os
-import pytest
-import tempfile
 import json
+import os
+import tempfile
+
+import pytest
+
 from pdz_tool.pdz_tool import PDZTool
-from pdz_tool.base_tool import BasePDZTool
-from pdz_tool.pdz25_tool import PDZ25Tool
-from pdz_tool.pdz24_tool import PDZ24Tool
 
 # Directory containing the demo PDZ files
 DEMO_DIR = os.path.join(os.path.dirname(__file__), '..', 'demo')
@@ -91,13 +90,13 @@ def test_file_not_found():
 
 
 def test_empty_file_path():
-    """Test that ValueError is raised for empty file path."""
+    """Test that ValueError is raised for an empty file path."""
     with pytest.raises(ValueError, match="File path cannot be empty"):
         PDZTool("")
 
 
 def test_directory_instead_of_file():
-    """Test that ValueError is raised when path is a directory."""
+    """Test that ValueError is raised when a path is a directory."""
     with pytest.raises(ValueError, match="Path is not a file"):
         PDZTool(DEMO_DIR)
 
@@ -196,7 +195,7 @@ def test_json_export_functionality():
         # Test JSON export
         tool.save_json(output_dir=temp_dir)
         
-        # Check that JSON file was created
+        # Check that a JSON file was created
         json_files = [f for f in os.listdir(temp_dir) if f.endswith('.json')]
         assert len(json_files) == 1
         
@@ -235,7 +234,7 @@ def test_image_extraction_functionality():
     images = tool.get_images_bytes()
     assert isinstance(images, list)
     
-    # If images are present, they should be bytes objects
+    # If images are present, they should be byte objects
     if len(images) > 0:
         for image in images:
             assert isinstance(image, bytes)
@@ -278,11 +277,11 @@ def test_save_images_functionality():
 
 
 def test_get_images_bytes_no_parsing():
-    """Test get_images_bytes before parsing returns empty list."""
+    """Test get_images_bytes before parsing returns an empty list."""
     pdz_file = os.path.join(DEMO_DIR, 'pdz25_example.pdz')
     tool = PDZTool(pdz_file)
     
-    # Should return empty list when called before parsing (parsed_data is empty dict)
+    # Should return an empty list when called before parsing (parsed_data is empty dict)
     images = tool.get_images_bytes()
     assert images == []
 
@@ -293,7 +292,7 @@ def test_image_extraction_no_images():
     tool = PDZTool(pdz_file)
     tool.parse()
     
-    # Should return empty list for files without images
+    # Should return an empty list for files without images
     images = tool.get_images_bytes()
     assert images == []
 

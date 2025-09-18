@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "pdz-tool"
-version = "0.2.3"
+version = "0.2.4"
 description = "A tool for reading and transforming PDZ 24 and PDZ 25 formats"
 authors = ["Bruno Ducraux <bruno.drx@gmail.com>"]
 license = "MIT"
@@ -15,7 +15,7 @@ packages = [
 [tool.poetry.dependencies]
 python = "^3.11"
 
-[tool.poetry.dev-dependencies]
+[tool.poetry.group.dev.dependencies]
 pytest = "^8"
 
 [build-system]

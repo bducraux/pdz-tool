@@ -33,6 +33,38 @@ def test_pdz25_example():
     assert len(spectrum_data) == 2048
 
 
+def test_pdz25_example_dual_phase():
+    pdz_file = os.path.join(DEMO_DIR, 'pdz25_example_dual_phase.pdz')
+    pdz_tool = PDZTool(pdz_file)
+
+    assert pdz_tool.version == "pdz25"
+    blocks = pdz_tool.parse()
+
+    # Ensure all blocks are parsed
+    assert len(blocks) == 11
+
+    assert blocks['File Header']['file_type_id'] == 'pdz25'
+
+    # Ensure Spectrum data is parsed
+    xrf_spectrum = blocks['XRF Spectrum']
+
+    # Ensure the two phases are parsed
+    assert len(xrf_spectrum) == 2
+
+    # Phase 0
+    assert xrf_spectrum[0]['channels'] == 2048
+    assert xrf_spectrum[0]['ev_per_channel'] == 20.015518188476562
+
+    spectrum_data = xrf_spectrum[0]['spectrum_data']
+    assert len(spectrum_data) == 2048
+
+    # Phase 1
+    assert xrf_spectrum[1]['channels'] == 2048
+    assert xrf_spectrum[1]['ev_per_channel'] == 20.015518188476562
+
+    spectrum_data = xrf_spectrum[1]['spectrum_data']
+    assert len(spectrum_data) == 2048
+
 def test_pdz24_example():
     pdz_file = os.path.join(DEMO_DIR, 'pdz24_example.pdz')
     pdz_tool = PDZTool(pdz_file)

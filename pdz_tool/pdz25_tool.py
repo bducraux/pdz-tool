@@ -520,8 +520,13 @@ class PDZ25Tool(BasePDZTool):
 
                 parsed_record_type = self.parse_record_type(record_type, block_bytes)
 
-                parsed_data[record_type_name] = parsed_record_type
-
+                # Handle multiple phases
+                if record_type_name in parsed_data:
+                    if not isinstance(parsed_data[record_type_name], list):
+                        parsed_data[record_type_name] = [parsed_data[record_type_name]]
+                    parsed_data[record_type_name].append(parsed_record_type)
+                else:
+                    parsed_data[record_type_name] = parsed_record_type
 
             self.parsed_data = parsed_data
 
